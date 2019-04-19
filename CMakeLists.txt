@@ -3,7 +3,7 @@ project(EksamenECS17)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(EksamenECS17 main.cpp src/ECS/ECS.h src/ECS/Entity.cpp src/ECS/Entity.h src/ECS/Component.h src/ECS/System.h Graphics/Display.cpp Graphics/Display.h Graphics/Shader.h Graphics/Mesh.h src/math/vec3.h src/math/matrix.h Graphics/Plane.h Graphics/FrameBuffer.h Graphics/Primitives.cpp Graphics/Primitives.h src/math/matrix.cpp src/math/vec3.cpp)
+add_executable(EksamenECS17 main.cpp src/ecs/manager.h src/ecs/entity.cpp src/ecs/entity.h src/ecs/component.h src/ecs/system.h src/window.cpp src/window.h Graphics/Shader.h src/mesh.h src/math/vec3.h src/math/matrix.h Graphics/Plane.h Graphics/FrameBuffer.h src/shapes.h src/math/matrix.cpp src/math/vec3.cpp src/shapes.cpp src/mesh.cpp)
 
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -framework OpenGL -lGLEW")
 # SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -framework OpenGL")

@@ -1,12 +1,4 @@
-#include "Entity.h"
-
-/*
-void EntityHandle::operator delete(void* ptr, size_t size) {
-  auto handle = (EntityHandle*) ptr;
-  handle->manager->PurgeHandle(handle->index);
-  delete(ptr);
-}
-*/
+#include "entity.h"
 
 void EntityHandleManager::PurgeHandle(unsigned long index) {
   if (index == pointers.size() - 1) {

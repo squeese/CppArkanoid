@@ -1,19 +1,35 @@
-#ifndef EKSAMENECS17_ECS_H
-#define EKSAMENECS17_ECS_H
+#ifndef EKSAMENECS17_MANAGER_H
+#define EKSAMENECS17_MANAGER_H
 
-#include "Component.h"
-#include "Entity.h"
-#include "System.h"
-#include "TmpStuff.h"
 #include <cstdint>
 #include <vector>
 #include <memory>
 #include <functional>
+#include "component.h"
+#include "entity.h"
+#include "system.h"
 
-template<typename... AllComponentTypes> class ECS {
+template <typename T, typename... Ts>
+struct Index;
+
+template <typename T, typename... Ts>
+struct Index<T, T, Ts...> : std::integral_constant<std::size_t, 0> {};
+
+template <typename T, typename U, typename... Ts>
+struct Index<T, U, Ts...> : std::integral_constant<std::size_t, 1 + Index<T, Ts...>::value> {};
+
+template<typename T, typename... Ts>
+constexpr bool contains() { return std::disjunction_v<std::is_same<T, Ts>...>; }
+
+template<typename... AllComponentTypes> class Manager {
   std::vector<uint8_t> components[sizeof...(AllComponentTypes)];
   std::vector<Entity> entities;
   EntityHandleManager entityHandles;
+
+  template<size_t index>
+  int32_t CreateBitMask(uint16_t* mask) {
+    return -1;
+  }
 
   template<size_t index, typename EntityComponentType, typename... EntityComponentTypes>
   int32_t CreateBitMask(uint16_t* mask) {
@@ -35,8 +51,8 @@ template<typename... AllComponentTypes> class ECS {
   }
 
   template<size_t index>
-  int32_t CreateBitMask(uint16_t* mask) {
-    return -1;
+  uint16_t CreateSystemBitMask(const uint16_t mask, std::vector<std::vector<uint8_t>*>& componentsSubset) {
+    return mask;
   }
 
   template<size_t index, typename SystemComponentType, typename... SystemComponentTypes>
@@ -55,8 +71,8 @@ template<typename... AllComponentTypes> class ECS {
   }
 
   template<size_t index>
-  uint16_t CreateSystemBitMask(const uint16_t mask, std::vector<std::vector<uint8_t>*>& componentsSubset) {
-    return mask;
+  std::tuple<> GetEntityComponents(const uint16_t bitmask, const int32_t next, uint16_t offset) {
+    return std::tuple<>();
   }
 
   template<size_t index, typename EntityComponentType, typename... EntityComponentTypes>
@@ -67,19 +83,12 @@ template<typename... AllComponentTypes> class ECS {
     return std::tuple_cat(value, GetEntityComponents<index + 1, EntityComponentTypes...>(bitmask, instance->next, offset + 1));
   }
 
-  template<size_t index>
-  std::tuple<> GetEntityComponents(const uint16_t bitmask, const int32_t next, uint16_t offset) {
-    return std::tuple<>();
-  }
-
 public:
   template<typename... EntityComponentTypes>
   std::shared_ptr<EntityHandle<EntityComponentTypes...>> CreateEntity() {
     uint16_t bitmask = 0;
     int32_t offset = CreateBitMask<0, EntityComponentTypes...>(&bitmask);
     entities.emplace_back(bitmask, offset);
-    std::bitset<8> n(bitmask);
-    std::cout << offset << ", " << bitmask << ", " << n << std::endl;
     unsigned long entityIndex = entities.size() - 1;
     return entityHandles.CreateHandle<EntityComponentTypes...>(entityIndex);
   }
@@ -109,12 +118,6 @@ public:
     }
     return system;
   }
-
-  /*
-  template<typename... SystemComponentTypes>
-  std::tuple<SystemComponentTypes*...> MapSystemToEntityComponents(const std::array<uint32_t, sizeof...(SystemComponentTypes)>& arr) {
-  }
-   */
 };
 
 #endif

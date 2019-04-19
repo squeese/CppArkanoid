@@ -2,8 +2,9 @@
 #define EKSAMENECS17_SYSTEM_H
 
 #include <vector>
-#include <map>
 #include <array>
+#include <functional>
+#include "entity.h"
 
 class SystemBase {};
 
@@ -13,8 +14,7 @@ class System : public SystemBase {
   uint16_t componentBitmask;
   std::vector<uint8_t>* componentSource[stride];
   std::vector<std::array<uint32_t, stride>> componentData;
-  // std::map<uint32_t, uint32_t> entityToComponentMap;
-  // using ArgsType = std::tuple<SystemComponentTypes*...>;
+
   using FuncType = std::function<void(SystemComponentTypes*...)>;
 
   template<size_t index>
@@ -56,8 +56,6 @@ public:
     }
   }
 };
-
-
 
 template<typename... SystemComponentTypes>
 const uint32_t System<SystemComponentTypes...>::stride(sizeof...(SystemComponentTypes));

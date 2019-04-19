@@ -1,23 +1,23 @@
 #include "matrix.h"
 
-GLfloat& matrix::operator [](unsigned int i) {
+GLfloat& Mat4::operator [](unsigned int i) {
   return cell[i];
 }
 
-GLfloat matrix::operator [](unsigned int i) const {
+GLfloat Mat4::operator [](unsigned int i) const {
   return cell[i];
 }
 
-const vec3 matrix::operator *(const vec3& o) const {
+const Vec3 Mat4::operator *(const Vec3& o) const {
   GLfloat w = 1.0f / (cell[3] * o.x + cell[7] * o.y + cell[11] * o.z + cell[15]);
-  return vec3(
+  return Vec3(
     (cell[0] * o.x + cell[4] * o.y + cell[8] * o.z  + cell[12]) * w,
     (cell[1] * o.x + cell[5] * o.y + cell[9] * o.z  + cell[13]) * w,
     (cell[2] * o.x + cell[6] * o.y + cell[10] * o.z + cell[14]) * w);
 }
 
-const matrix matrix::operator *(const matrix& o) const {
-  matrix m;
+const Mat4 Mat4::operator *(const Mat4& o) const {
+  Mat4 m;
   m[n11] = cell[n11] * o[n11] + cell[n12] * o[n21] + cell[n13] * o[n31] + cell[n14] * o[n41];
   m[n12] = cell[n11] * o[n12] + cell[n12] * o[n22] + cell[n13] * o[n32] + cell[n14] * o[n42];
   m[n13] = cell[n11] * o[n13] + cell[n12] * o[n23] + cell[n13] * o[n33] + cell[n14] * o[n43];
@@ -37,27 +37,27 @@ const matrix matrix::operator *(const matrix& o) const {
   return m;
 }
 
-const matrix matrix::Translation(const vec3& translation) {
-  matrix m;
+const Mat4 Mat4::Translation(const Vec3& translation) {
+  Mat4 m;
   m[n14] = translation.x;
   m[n24] = translation.y;
   m[n34] = translation.z;
   return m;
 }
 
-const matrix matrix::Translation(GLfloat x, GLfloat y, GLfloat z) {
-  matrix m;
+const Mat4 Mat4::Translation(GLfloat x, GLfloat y, GLfloat z) {
+  Mat4 m;
   m[n14] = x;
   m[n24] = y;
   m[n34] = z;
   return m;
 }
 
-const matrix matrix::EulerRotationZXY(const vec3& euler) {
-  return matrix::EulerRotationZXY(euler.x, euler.y, euler.z);
+const Mat4 Mat4::EulerRotationZXY(const Vec3& euler) {
+  return Mat4::EulerRotationZXY(euler.x, euler.y, euler.z);
 }
 
-const matrix matrix::EulerRotationZXY(GLfloat x, GLfloat y, GLfloat z) {
+const Mat4 Mat4::EulerRotationZXY(GLfloat x, GLfloat y, GLfloat z) {
   GLfloat a = cos(x);
   GLfloat b = sin(x);
   GLfloat c = cos(y);
@@ -68,7 +68,7 @@ const matrix matrix::EulerRotationZXY(GLfloat x, GLfloat y, GLfloat z) {
   GLfloat cf = c * f;
   GLfloat de = d * e;
   GLfloat df = d * f;
-  matrix m;
+  Mat4 m;
   m[n11] = ce - df * b;
   m[n12] = -a * f;
   m[n13] = de + cf * b;
@@ -81,36 +81,36 @@ const matrix matrix::EulerRotationZXY(GLfloat x, GLfloat y, GLfloat z) {
   return m;
 }
 
-const matrix matrix::Scale(const vec3& scalars) {
-  matrix m;
+const Mat4 Mat4::Scale(const Vec3& scalars) {
+  Mat4 m;
   m[n11] = scalars.x;
   m[n22] = scalars.y;
   m[n33] = scalars.z;
   return m;
 }
 
-const matrix matrix::Scale(GLfloat x, GLfloat y, GLfloat z) {
-  matrix m;
+const Mat4 Mat4::Scale(GLfloat x, GLfloat y, GLfloat z) {
+  Mat4 m;
   m[n11] = x;
   m[n22] = y;
   m[n33] = z;
   return m;
 }
 
-const matrix matrix::Identity() {
-  matrix m;
+const Mat4 Mat4::Identity() {
+  Mat4 m;
   return m;
 }
 
-const matrix matrix::Transform(const vec3& position, const vec3& rotation, const vec3& scale) {
-  matrix mTranslation = matrix::Translation(position);
-  matrix mRotation = matrix::EulerRotationZXY(rotation);
-  matrix mScale = matrix::Scale(scale);
+const Mat4 Mat4::Transform(const Vec3& position, const Vec3& rotation, const Vec3& scale) {
+  Mat4 mTranslation = Mat4::Translation(position);
+  Mat4 mRotation = Mat4::EulerRotationZXY(rotation);
+  Mat4 mScale = Mat4::Scale(scale);
   return mScale * mRotation * mTranslation;
 }
 
-const matrix matrix::Perspective(GLfloat fov, GLfloat ratio, GLfloat near, GLfloat far) {
-  matrix m;
+const Mat4 Mat4::Perspective(GLfloat fov, GLfloat ratio, GLfloat near, GLfloat far) {
+  Mat4 m;
   GLfloat C = 1.0f / tan(fov * 0.5f);
   GLfloat R = 1.0f / (near - far);
   m[n11] = C/ratio;
@@ -122,11 +122,11 @@ const matrix matrix::Perspective(GLfloat fov, GLfloat ratio, GLfloat near, GLflo
   return m;
 }
 
-const matrix matrix::LookAt(const vec3& eye, const vec3& target, const vec3& up) {
-  vec3 F = (target - eye).Normalized();
-  vec3 R = vec3::Cross(up, F).Normalized();
-  vec3 U = vec3::Cross(F, R);
-  matrix m;
+const Mat4 Mat4::LookAt(const Vec3& eye, const Vec3& target, const Vec3& up) {
+  Vec3 F = (target - eye).Normalized();
+  Vec3 R = Vec3::Cross(up, F).Normalized();
+  Vec3 U = Vec3::Cross(F, R);
+  Mat4 m;
   m[n11] = R.x;  m[n12] = U.x;  m[n13] = F.x;  m[n14] = eye.x;
   m[n21] = R.y;  m[n22] = U.y;  m[n23] = F.y;  m[n24] = eye.y;
   m[n31] = R.z;  m[n32] = U.z;  m[n33] = F.z;  m[n34] = eye.z;
