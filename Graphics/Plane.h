@@ -3,7 +3,7 @@
 
 #include <functional>
 #include "GL/glew.h"
-#include "./Shader.h"
+#include "../src/program.h"
 #include "./../Math/Matrix.h"
 
 class PlaneVertexShader : public GPU_Shader<GL_VERTEX_SHADER> {

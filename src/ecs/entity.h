@@ -2,9 +2,31 @@
 #define EKSAMENECS17_ENTITY_H
 
 #include <cstdint>
-#include <vector>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <vector>
+#include <map>
+
+class Antity {
+public:
+  uint32_t index;
+  int32_t mask = 0;
+  std::map<uint32_t, uint32_t> offsets;
+  explicit Antity(uint32_t index) : index(index) {}
+};
+
+/*
+template<typename... EntityComponents>
+class Antity : public AntityBase {
+public:
+  unsigned int size = sizeof...(EntityComponents);
+  uint32_t offsets[sizeof...(EntityComponents)] = { 0 };
+  Antity(uint32_t index, int32_t mask, uint32_t* offsets) : AntityBase(index, mask) {
+    memcpy(this->offsets, offsets, size);
+  }
+};
+ */
+
 
 struct Entity {
 public:
@@ -35,6 +57,10 @@ public:
   void SetEntityIndex(unsigned long index) final;
   void SetHandleIndex(unsigned long index) final;
   unsigned long GetEntityIndex() const;
+  template<typename SubSetTypes>
+  void Test() {
+
+  }
 };
 
 class EntityHandleManager {

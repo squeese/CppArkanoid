@@ -3,10 +3,8 @@ project(EksamenECS17)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(EksamenECS17 main.cpp src/ecs/manager.h src/ecs/entity.cpp src/ecs/entity.h src/ecs/component.h src/ecs/system.h src/window.cpp src/window.h Graphics/Shader.h src/mesh.h src/math/vec3.h src/math/matrix.h Graphics/Plane.h Graphics/FrameBuffer.h src/shapes.h src/math/matrix.cpp src/math/vec3.cpp src/shapes.cpp src/mesh.cpp)
-
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -framework OpenGL -lGLEW")
-# SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -framework OpenGL")
+# add_executable(EksamenECS17 main.cpp src/ecs/manager.h src/ecs/entity.cpp src/ecs/entity.h src/ecs/component.h src/ecs/system.h src/window.cpp src/window.h src/program.h src/mesh.h src/math/vec3.h src/math/matrix.h Graphics/Plane.h Graphics/FrameBuffer.h src/shapes.h src/math/matrix.cpp src/math/vec3.cpp src/shapes.cpp src/mesh.cpp src/program.cpp src/math/vec2.cpp src/math/vec2.h src/framebuffer.h src/renderer.h src/gamestate.h src/test.cpp)
+add_executable(EksamenECS17 test.cpp src/ecs/manager.h src/ecs/entity.cpp src/ecs/entity.h src/ecs/component.h src/ecs/system.h)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${EksamenECS17_SOURCE_DIR}/cmake")
 find_package(SDL2 REQUIRED)

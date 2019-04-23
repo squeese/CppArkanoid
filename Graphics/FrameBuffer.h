@@ -5,7 +5,7 @@
 
 #include "GL/glew.h"
 #include "./../Math/Vector.h"
-#include "./Shader.h"
+#include "../src/program.h"
 #include <iostream>
 #include <vector>
 #include <functional>

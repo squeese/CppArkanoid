@@ -1,104 +1,9 @@
-#ifndef EKSAMENECS17_SHADER_H
-#define EKSAMENECS17_SHADER_H
+#include "program.h"
 
-#include <iostream>
-#include "GL/glew.h"
-#include "./../Math/Matrix.h"
-
-template<GLenum TYPE>
-class GPU_Shader {
+/*
+class BasicVS : public Shader<GL_VERTEX_SHADER> {
 public:
-  static GLuint Compile(GLint* success, const char* source) {
-    GLuint shader = glCreateShader(TYPE);
-    if (shader == 0) {
-      std::cout << "Error: glCreateShader failed" << std::endl;
-      *success = GL_FALSE;
-      return shader;
-    }
-    glShaderSource(shader, 1, &source, nullptr);
-    glCompileShader(shader);
-    glGetShaderiv(shader, GL_COMPILE_STATUS, success);
-    if (*success == GL_TRUE) return shader;
-    GLchar error[512];
-    glGetShaderInfoLog(shader, sizeof(error), nullptr, error);
-    std::cout << "Error: glCompileShader failed: " << error << std::endl;
-    return shader;
-  }
-};
-
-template<class... GPU_Shaders>
-class GPU_Program {
-  template<size_t i>
-  bool CompileGPUShaders() {
-    return true;
-  }
-  template<size_t i, class GPU_Shader, class... REST>
-  bool CompileGPUShaders() {
-    GLint success;
-    GLuint shader = GPU_Shader::Compile(&success, GPU_Shader::SOURCE);
-    if (success == GL_TRUE) {
-      shaders[i] = shader;
-      // fn(i, shader);
-      return CompileGPUShaders<i + 1, REST...>();
-    }
-    return false;
-  }
-public:
-  GLint success;
-  GLuint program;
-  GLuint shaders[sizeof...(GPU_Shaders)];
-
-  GPU_Program() {
-    CompileGPUShaders<0, GPU_Shaders...>();
-    program = glCreateProgram();
-    for (unsigned int i = 0; i < sizeof...(GPU_Shaders); i++)
-      glAttachShader(program, shaders[i]);
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (success == GL_FALSE) {
-      GLchar error[512];
-      glGetProgramInfoLog(program, sizeof(error), NULL, error);
-      std::cout << "Error: glLinkProgram failed: " << error << std::endl;
-    }
-    glValidateProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (success == GL_FALSE) {
-      GLchar error[512];
-      glGetProgramInfoLog(program, sizeof(error), NULL, error);
-      std::cout << "Error: glValidateProgram failed: " << error << std::endl;
-    }
-    for (unsigned int i = 0; i < sizeof...(GPU_Shaders); i++)
-      glDeleteShader(shaders[i]);
-  }
-
-  ~GPU_Program() {
-    glDeleteProgram(program);
-  }
-
-  void Use() {
-    glUseProgram(program);
-  }
-
-  void SetUniformInt(const std::string& key, int value) const {
-    glUniform1i(glGetUniformLocation(program, key.c_str()), value);
-  }
-
-  void SetUniformFloat(const std::string &key, float value) const {
-    glUniform1f(glGetUniformLocation(program, key.c_str()), value);
-  }
-
-  void SetUniformVec3(const std::string &name, const Vector &value) const {
-    glUniform3fv(glGetUniformLocation(program, name.c_str()), 1, &value.x);
-  }
-
-  void SetUniformMat4(const std::string &name, const Matrix& matrix) const {
-    glUniformMatrix4fv(glGetUniformLocation(program, name.c_str()), 1, GL_FALSE, (GLfloat*) &matrix);
-  }
-};
-
-class BasicVS : public GPU_Shader<GL_VERTEX_SHADER> {
-public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in mat4 mModel;
@@ -116,9 +21,9 @@ public:
   )";
 };
 
-class BasicVS2 : public GPU_Shader<GL_VERTEX_SHADER> {
+class BasicVS2 : public Shader<GL_VERTEX_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) in vec3 aPos;
     // layout (location = 1) in mat4 mModel;
@@ -136,9 +41,9 @@ public:
 // layout (location = 1) in vec3 aCol;
 //color = aCol;
 
-class BasicFS : public GPU_Shader<GL_FRAGMENT_SHADER> {
+class BasicFS : public Shader<GL_FRAGMENT_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     in vec4 color;
     out vec4 FragColor;
@@ -148,9 +53,9 @@ public:
   )";
 };
 
-class MeshVertexShader : public GPU_Shader<GL_VERTEX_SHADER> {
+class MeshVertexShader : public Shader<GL_VERTEX_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 150 core
     in vec3 vPosition;  // The vertex in the LOCAL coordinate system
     uniform mat4 mM;    // The matrix for the pose of the model
@@ -170,9 +75,9 @@ public:
   )";
 };
 
-class MeshFragmentShader : public GPU_Shader<GL_FRAGMENT_SHADER> {
+class MeshFragmentShader : public Shader<GL_FRAGMENT_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 150 core
     in vec4 color;
     out vec4 outColor;
@@ -182,9 +87,9 @@ public:
   )";
 };
 
-class BloomVS : public GPU_Shader<GL_VERTEX_SHADER> {
+class BloomVS : public Shader<GL_VERTEX_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec3 aNormal;
@@ -210,9 +115,9 @@ public:
   )";
 };
 
-class BloomFS : public GPU_Shader<GL_FRAGMENT_SHADER> {
+class BloomFS : public Shader<GL_FRAGMENT_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) out vec4 FragColor;
     layout (location = 1) out vec4 BrightColor;
@@ -257,9 +162,9 @@ public:
   )";
 };
 
-class LightBoxFS : public GPU_Shader<GL_FRAGMENT_SHADER> {
+class LightBoxFS : public Shader<GL_FRAGMENT_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) out vec4 FragColor;
     layout (location = 1) out vec4 BrightColor;
@@ -283,9 +188,9 @@ public:
   )";
 };
 
-class BlurVS : public GPU_Shader<GL_VERTEX_SHADER> {
+class BlurVS : public Shader<GL_VERTEX_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec2 aTexCoords;
@@ -299,9 +204,9 @@ public:
   )";
 };
 
-class BlurFS : public GPU_Shader<GL_FRAGMENT_SHADER> {
+class BlurFS : public Shader<GL_FRAGMENT_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     out vec4 FragColor;
 
@@ -331,9 +236,9 @@ public:
   )";
 };
 
-class FinalVS : public GPU_Shader<GL_VERTEX_SHADER> {
+class FinalVS : public Shader<GL_VERTEX_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec2 aTexCoords;
@@ -347,9 +252,9 @@ public:
   )";
 };
 
-class FinalFS : public GPU_Shader<GL_FRAGMENT_SHADER> {
+class FinalFS : public Shader<GL_FRAGMENT_SHADER> {
 public:
-  inline static const char* SOURCE = R"(
+  inline static const char *SOURCE = R"(
     #version 330 core
     out vec4 FragColor;
 
@@ -372,5 +277,4 @@ public:
     }
   )";
 };
-#endif
-
+*/

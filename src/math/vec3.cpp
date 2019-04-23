@@ -20,6 +20,10 @@ const Vec3 Vec3::operator -(const Vec3& o) const {
   return Vec3(x - o.x, y - o.y, z - o.z);
 }
 
+const Vec3 Vec3::operator -() const {
+  return Vec3(-x, -y, -z);
+}
+
 const Vec3 Vec3::operator *(GLfloat s) const {
   return Vec3(x * s, y * s, z * s);
 }
@@ -40,6 +44,10 @@ const Vec3 Vec3::Cross(const Vec3& a, const Vec3& b) {
     a.y * b.z - a.z * b.y,
     a.z * b.x - a.x * b.z,
     a.x * b.y - a.y * b.x);
+}
+
+GLfloat Vec3::Dot(const Vec3& a, const Vec3& b) {
+  return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
 GLfloat Vec3::MagnitudeSQ() const {

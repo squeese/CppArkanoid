@@ -1,10 +1,7 @@
 #ifndef EKSAMENECS17_MANAGER_H
 #define EKSAMENECS17_MANAGER_H
 
-#include <cstdint>
-#include <vector>
-#include <memory>
-#include <functional>
+#include <iostream>
 #include "component.h"
 #include "entity.h"
 #include "system.h"
@@ -24,8 +21,13 @@ constexpr bool contains() { return std::disjunction_v<std::is_same<T, Ts>...>; }
 template<typename... AllComponentTypes> class Manager {
   std::vector<uint8_t> components[sizeof...(AllComponentTypes)];
   std::vector<Entity> entities;
+
+  std::vector<Antity> antities;
+
+  std::vector<std::shared_ptr<SystemBase>> systems;
   EntityHandleManager entityHandles;
 
+  /*
   template<size_t index>
   int32_t CreateBitMask(uint16_t* mask) {
     return -1;
@@ -48,6 +50,37 @@ template<typename... AllComponentTypes> class Manager {
     auto instance = new (&components[componentIndex][currentComponentOffset]) EntityComponentType();
     instance->next = previousComponentOffset;
     return currentComponentOffset;
+  }
+   */
+
+  template<size_t index>
+  void CreateEntityComponents(int32_t* mask, const std::map<uint32_t, uint32_t>& offsets) {}
+
+  template<size_t index, typename EntityComponentType, typename... REST>
+  void CreateEntityComponents(int32_t* mask, const std::map<uint32_t, uint32_t>& offsets) {
+    // Get the index for this component (EntityComponentType in AllComponentTypes)
+    Index<EntityComponentType, AllComponentTypes...> componentIndex;
+    uint32_t offset = components[componentIndex].size();
+    // Resize the components array to add a new component
+    components[componentIndex].resize(offset + sizeof(EntityComponentType));
+    new (&components[componentIndex][offset]) EntityComponentType();
+    // Store the offset to pass back to the entity, and flip the bit represting ths component
+    // int the component bitmask
+    offsets[componentIndex] = offset;
+    *mask = *mask ^ (1 << componentIndex);
+    // Continue the traversal
+    CreateEntityComponents<index + 1, REST...>(mask, offsets);
+  }
+
+
+public:
+  template<typename... EntityComponentTypes>
+  std::shared_ptr<EntityHandle<EntityComponentTypes...>> CreateEntity() {
+    uint32_t index = antities.size();
+    antities.emplace_back(index);
+    Antity* antity = &antities[index];
+    CreateEntityComponents<0, EntityComponentTypes...>(&antity->mask, antity->offsets);
+
   }
 
   template<size_t index>
@@ -83,16 +116,6 @@ template<typename... AllComponentTypes> class Manager {
     return std::tuple_cat(value, GetEntityComponents<index + 1, EntityComponentTypes...>(bitmask, instance->next, offset + 1));
   }
 
-public:
-  template<typename... EntityComponentTypes>
-  std::shared_ptr<EntityHandle<EntityComponentTypes...>> CreateEntity() {
-    uint16_t bitmask = 0;
-    int32_t offset = CreateBitMask<0, EntityComponentTypes...>(&bitmask);
-    entities.emplace_back(bitmask, offset);
-    unsigned long entityIndex = entities.size() - 1;
-    return entityHandles.CreateHandle<EntityComponentTypes...>(entityIndex);
-  }
-
   template<typename... EntityComponentTypes>
   std::vector<std::shared_ptr<EntityHandle<EntityComponentTypes...>>> CreateEntities(unsigned int count) {
     std::vector<std::shared_ptr<EntityHandle<EntityComponentTypes...>>> entitiesArray;
@@ -109,14 +132,72 @@ public:
   }
 
   template<typename... SystemComponentTypes>
-  System<SystemComponentTypes...>* CreateSystem() {
+  std::shared_ptr<System<SystemComponentTypes...>> CreateSystem() {
+    // Create a subset of the component data the system will use, meaning;
+    // if this manager holds data for components A, B, C, D; and the system is 'selecting'
+    // f.eks components B, D; we create a pointers to those component data and pass it
+    // to the system as we create it.
     std::vector<std::vector<uint8_t>*> componentsSubset(sizeof...(SystemComponentTypes));
     uint16_t bitmask = CreateSystemBitMask<0, SystemComponentTypes...>(0, componentsSubset);
-    auto system = new System<SystemComponentTypes...>(bitmask, componentsSubset);
-    for (uint32_t i = 0; i < entities.size(); i++) {
-      system->EntityCreated(&entities[i], i);
+    // Create the system with the component bitmask representing the component selection, aswell
+    // as the data for each component.
+    auto systemInstance = new System<SystemComponentTypes...>(bitmask, componentsSubset);
+    // Create a shared pointer as the 'handle' for the system. We need to use a shared pointer
+    // because we wont always be the in control of the system, if the 'user' want to disable a system,
+    // its done by removing it from the systems array, thus we loose reference to it.
+    std::shared_ptr<System<SystemComponentTypes...>> systemPtr(systemInstance);
+    // We pass all entities to the new system to let that one filter out which entities that
+    // matches the component selection
+    for (uint32_t i = 0; i < entities.size(); i++)
+      systemInstance->EntityCreated(&entities[i]);
+    systems.push_back(systemPtr);
+    return systemPtr;
+  }
+
+  template<size_t index>
+  void DumpComponentData() {
+    std::cout << std::endl;
+  }
+
+  template<size_t index, typename ComponentType, typename... REST>
+  void DumpComponentData() {
+    unsigned int size = sizeof(ComponentType);
+    unsigned int count = components[index].size() / size;
+    std::cout << "-- " << index << " " << ComponentType::Name << " sizeof(" << size << ") size(" << components[index].size() << ") count("<< count <<")" << std::endl;
+    for (unsigned int i = 0; i < count; i++) {
+      unsigned int offset = i * size;
+      ComponentType* instance = (ComponentType*) &components[index][offset];
+      std::cout << "[index: " << i << ", offset: "<< offset << " ] " << instance << " next: " << instance->next << std::endl;
     }
-    return system;
+    DumpComponentData<index + 1, REST...>();
+  }
+
+  void DumpComponentData() {
+    std::cout << "-- Dumping Component Data" << std::endl;
+    DumpComponentData<0, AllComponentTypes...>();
+  }
+
+  template<size_t index>
+  std::string DumpEntityBitmask(int32_t bitmask) {
+    return "";
+  }
+
+  template<size_t index, typename ComponentType, typename... REST>
+  std::string DumpEntityBitmask(int32_t bitmask) {
+    if ((bitmask) & (1 << index)) {
+      return ComponentType::Name + DumpEntityBitmask<index + 1, REST...>(bitmask);
+    } else {
+      return "-" + DumpEntityBitmask<index + 1, REST...>(bitmask);
+    }
+  }
+
+  void DumpEntityData() {
+    std::cout << "-- Dumping Entity Data" << std::endl;
+    for (unsigned int i = 0; i < entities.size(); i++) {
+      std::string components = DumpEntityBitmask<0, AllComponentTypes...>(entities[i].componentBitmask);
+      std::cout << "[index: " << i << " ] " << components << " next: " << entities[i].next << std::endl;
+    }
+    std::cout << std::endl;
   }
 };
 

@@ -16,11 +16,13 @@ public:
   static const Vec3 ZERO() { return Vec3(0.0f, 0.0f, 0.0f); }
   static const Vec3 UP() { return Vec3(0.0f, 1.0f, 0.0f); }
   static const Vec3 Cross(const Vec3& a, const Vec3&b);
+  static GLfloat Dot(const Vec3& a, const Vec3& b);
 
   void operator +=(const Vec3& o);
   void operator -=(const Vec3& o);
   const Vec3 operator +(const Vec3& o) const;
   const Vec3 operator -(const Vec3& o) const;
+  const Vec3 operator -() const;
   const Vec3 operator *(GLfloat s) const;
   const Vec3 operator /(GLfloat s) const;
   const Vec3 Cross(const Vec3& o) const;

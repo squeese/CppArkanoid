@@ -9,12 +9,16 @@
 class Window {
   SDL_Window* window;
   SDL_GLContext context;
-  bool isClosed = false;
 public:
+  bool KEY_W = false;
+  bool KEY_A = false;
+  bool KEY_S = false;
+  bool KEY_D = false;
+
   using RenderFunction = std::function<void(float, float)>;
   Window(int width, int height, const std::string& title);
+  bool HandleInput();
   ~Window();
-  void RenderLoop(unsigned int fps, const RenderFunction& renderFn);
 };
 
 #endif
