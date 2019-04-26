@@ -154,38 +154,3 @@ template<typename... SComponents>
 const unsigned int Manager<SComponents...>::SIZE(sizeof...(SComponents));
 
 #endif
-
-/*
-  template<size_t index>
-  void Dump() {}
-
-  template<size_t index, typename T, typename... TS>
-  void Dump() {
-    auto size = componentData[index].size();
-    auto count = size / componentSizes[index];
-    for (unsigned int i = 0; i < count; i++) {
-      auto offset = i * componentSizes[index];
-      auto c = (T*) &componentData[index][offset];
-      Entity* e = &entities[((Component*)c)->entityIndex];
-      std::cout << "  cindex :" << index;
-      std::cout << " cname: " << T::Name;
-      std::cout << " offset: " << offset;
-      std::cout << " index: " << i;
-      std::cout << " value: " << c->v;
-      std::cout << " caddr: " << c;
-      std::cout << " eaddr: " << e;
-      std::cout << std::endl;
-    }
-    Dump<index + 1, TS...>();
-  }
-
-  void Dump() {
-    std::cout << "Entities" << std::endl;
-    for (unsigned int i = 0; i < entities.size(); i++) {
-      Entity& e = entities[i];
-      std::cout << "  [" << i << "] " << e.GetIndex() << " " << &e << std::endl;
-    }
-    std::cout << "Components" << std::endl;
-    Dump<0, MComponents...>();
-  }
- */

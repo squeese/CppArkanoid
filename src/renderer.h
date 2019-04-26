@@ -6,7 +6,6 @@
 #include "program.h"
 #include "mesh.h"
 
-
 class LineBoxVertexShader : public Shader<GL_VERTEX_SHADER> {
 public:
   inline static const char *SOURCE = R"(
@@ -166,12 +165,6 @@ public:
     }
   )";
 };
-
-// Mesh boxMeshFlat(ShapeBuilder::BoxFlat(0.15f, 0.15f, 0.15f));
-// Mesh boxMeshRound(ShapeBuilder::BoxFlat(0.15f, 0.15f, 0.15f));
-// Mesh dot(ShapeBuilder::BoxRound(0.15f, 0.15f, 0.15f));
-// Mesh bigBoxRound(ShapeBuilder::BoxRound(1.0f, 1.0f, 1.0f));
-// Mesh bigBoxFlat(ShapeBuilder::BoxFlat(1.0f, 1.0f, 1.0f));
 
 class Renderer {
   GLuint MainFBO = 0;

@@ -23,15 +23,15 @@ bool IsCollidingBox(const Vec3& apos, const Vec3& bpos, const Vec3& asize, const
 int main() {
   // Window manager, SDL and Glew
   Window window(W_WIDTH, W_HEIGHT, "Arknnnoooise!");
-  //
   Renderer renderer(W_WIDTH, W_HEIGHT);
+
   //
   Mat4 cameraProjMatrix = Mat4::Perspective(70.0f, 640.0f/480.0f, 0.1f, 100.0f);
   Mat4 cameraViewMatrix = Mat4::LookAt(Vec3 { 0.0f, 0.0f, -3.0f }, Vec3::ZERO(), Vec3::UP());
-  //
+
+  // meshes..
   ArrayMesh<MeshTypes::UV, MeshTypes::NORMAL, MeshTypes::ELEMENTS> meshBoxRound(ShapeBuilder::BoxRound(1.0f, 1.0f, 1.0f));
   ArrayMesh<MeshTypes::UV, MeshTypes::NORMAL, MeshTypes::ELEMENTS> meshBoxFlat(ShapeBuilder::BoxFlat(1.0f, 1.0f, 1.0f));
-  ArrayMesh<MeshTypes::UV, MeshTypes::NORMAL, MeshTypes::ELEMENTS> meshSphere(ShapeBuilder::Sphere());
 
   // ECS, Entity Component System
   Manager<C::Player, C::VertletPosition, C::Transform, C::Mesh, C::Brick, C::Collider> manager;
@@ -172,7 +172,10 @@ int main() {
           pbc->dead = true;
           float ox = ptc->position.x - tc->position.x;
           float oy = ptc->position.y - tc->position.y;
+          // asdf;lasjdflksjadf
           // std::cout << abs(ox) << ", " << abs(oy) << std::endl;
+
+          // well, that was as far as I got..as.dfmsa;lkdfhjaskldfjalsk;jdfkl
           if (abs(ox) < abs(oy)) {
             // std::cout << "x" << std::endl;
             // tc->position.x = -GAME_WIDTH;
@@ -183,6 +186,7 @@ int main() {
           } else {
             float dy = tc->position.y - vpc->position.y;
             if (dy > 0.0f) {
+              // iI
               tc->position.y = ptc->position.y + pcc->size.y / 2 - cc->size.y / 2;
               vpc->position.y = tc->position.y + dy;
             } else {
@@ -293,7 +297,6 @@ bool IsCollidingBox(const Vec3& apos, const Vec3& bpos, const Vec3& asize, const
           (abs(apos.y - bpos.y) * 2 < (asize.y + bsize.y)) &&
           (abs(apos.z - bpos.z) * 2 < (asize.z + bsize.z)));
 }
-
 /*
 struct PositionComponent : public Component {
   Vec3 position;

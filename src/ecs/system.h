@@ -97,29 +97,3 @@ public:
 template<typename Manager, typename... SComponents>
 const unsigned int System<Manager, SComponents...>::SIZE(sizeof...(SComponents));
 #endif
-
-
-/*
-
-  template <size_t offset>
-  std::string Names() {
-    return "";
-  }
-
-  template <size_t offset, typename T, typename... TS>
-  std::string Names() {
-    return T::Name + Names<offset + 1, TS...>();
-  }
-
-  void Dump() {
-    std::cout << "------------------------------------------------------" << std::endl;
-    std::cout << "System " << Names<0, SComponents...>() << std::endl;
-    for (unsigned int i = 0; i < entityData.size(); i++) {
-      Data* d = &entityData[i];
-      std::cout << "  index :" << i;
-      std::cout << "  daddr: " << d;
-      std::cout << "  eindex: " << d->entityIndex;
-      std::cout << std::endl;
-    }
-  }
- * */

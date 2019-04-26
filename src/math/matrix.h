@@ -33,7 +33,6 @@ public:
   static const Mat4 Transform(const Vec3& position, const Vec3& rotation, const Vec3& scale);
   static const Mat4 Perspective(GLfloat fov, GLfloat ratio, GLfloat near, GLfloat far);
   static const Mat4 LookAt(const Vec3& position, const Vec3& target, const Vec3& up);
-  static const Mat4 LookAt2(const Vec3& position, const Vec3& target, const Vec3& up);
 };
 
 #endif
