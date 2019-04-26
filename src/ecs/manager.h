@@ -1,204 +1,191 @@
 #ifndef EKSAMENECS17_MANAGER_H
 #define EKSAMENECS17_MANAGER_H
 
-#include <iostream>
 #include "component.h"
 #include "entity.h"
 #include "system.h"
+#include <vector>
 
-template <typename T, typename... Ts>
-struct Index;
+template<typename... MComponents>
+class Manager {
+  static const unsigned int SIZE;
 
-template <typename T, typename... Ts>
-struct Index<T, T, Ts...> : std::integral_constant<std::size_t, 0> {};
-
-template <typename T, typename U, typename... Ts>
-struct Index<T, U, Ts...> : std::integral_constant<std::size_t, 1 + Index<T, Ts...>::value> {};
-
-template<typename T, typename... Ts>
-constexpr bool contains() { return std::disjunction_v<std::is_same<T, Ts>...>; }
-
-template<typename... AllComponentTypes> class Manager {
-  std::vector<uint8_t> components[sizeof...(AllComponentTypes)];
-  std::vector<Entity> entities;
-
-  std::vector<Antity> antities;
-
-  std::vector<std::shared_ptr<SystemBase>> systems;
-  EntityHandleManager entityHandles;
-
-  /*
-  template<size_t index>
-  int32_t CreateBitMask(uint16_t* mask) {
-    return -1;
-  }
-
-  template<size_t index, typename EntityComponentType, typename... EntityComponentTypes>
-  int32_t CreateBitMask(uint16_t* mask) {
-    // TODO: make some static assertions about valid components'n stuff, but seems to be WAY above my IQ
-    // TODO: Assert - EntityComponentType is in the AllEntityComponents variadic
-    // TODO: Assert - No duplicates
-    // TODO: Assert - All components are in correct increment order
-    // - static_assert(contains<EntityComponentType, AllComponentTypes...>, "UGH! Not valid?!");
-    // - static_assert(not contains<EntityComponentType, EntityComponentTypes...>, "UGH! Dupicate??");
-
-    int32_t previousComponentOffset = CreateBitMask<index + 1, EntityComponentTypes...>(mask);
-    Index<EntityComponentType, AllComponentTypes...> componentIndex;
-    *mask = *mask ^ (uint16_t)(1 << componentIndex);
-    auto currentComponentOffset = (int32_t) components[componentIndex].size();
-    components[componentIndex].resize(currentComponentOffset + sizeof(EntityComponentType));
-    auto instance = new (&components[componentIndex][currentComponentOffset]) EntityComponentType();
-    instance->next = previousComponentOffset;
-    return currentComponentOffset;
-  }
-   */
+  std::vector<Entity>                       entities;
+  std::vector<std::shared_ptr<SystemBase>>  systems;
+  std::vector<uint8_t>                      componentData[SIZE];
+  uint32_t                                  componentSizes[SIZE] = { 0 };
 
   template<size_t index>
-  void CreateEntityComponents(int32_t* mask, const std::map<uint32_t, uint32_t>& offsets) {}
+  void SetComponentSizes() {}
 
-  template<size_t index, typename EntityComponentType, typename... REST>
-  void CreateEntityComponents(int32_t* mask, const std::map<uint32_t, uint32_t>& offsets) {
-    // Get the index for this component (EntityComponentType in AllComponentTypes)
-    Index<EntityComponentType, AllComponentTypes...> componentIndex;
-    uint32_t offset = components[componentIndex].size();
-    // Resize the components array to add a new component
-    components[componentIndex].resize(offset + sizeof(EntityComponentType));
-    new (&components[componentIndex][offset]) EntityComponentType();
-    // Store the offset to pass back to the entity, and flip the bit represting ths component
-    // int the component bitmask
-    offsets[componentIndex] = offset;
-    *mask = *mask ^ (1 << componentIndex);
-    // Continue the traversal
-    CreateEntityComponents<index + 1, REST...>(mask, offsets);
+  template<size_t index, typename TC, typename... REST>
+  void SetComponentSizes() {
+    componentSizes[index] = sizeof(TC);
+    SetComponentSizes<index + 1, REST...>();
   }
 
+  template<size_t offset>
+  ComponentMask CreateSystemMask() const {
+    return 0;
+  }
 
-public:
-  template<typename... EntityComponentTypes>
-  std::shared_ptr<EntityHandle<EntityComponentTypes...>> CreateEntity() {
-    uint32_t index = antities.size();
-    antities.emplace_back(index);
-    Antity* antity = &antities[index];
-    CreateEntityComponents<0, EntityComponentTypes...>(&antity->mask, antity->offsets);
+  template<size_t offset, typename CT, typename... REST>
+  ComponentMask CreateSystemMask() const {
+    return CreateSystemMask<offset + 1, REST...>() ^ 1UL << ComponentIndex<CT, MComponents...>();
+  }
 
+  template <size_t offset, size_t size>
+  void CreateSystemComponentKeys(std::array<Index, size>& keys) {}
+
+  template <size_t offset, size_t size, typename CT, typename... REST>
+  void CreateSystemComponentKeys(std::array<Index, size>& keys) {
+    ComponentIndex<CT, MComponents...> index;
+    keys[offset] = (Index) index;
+    CreateSystemComponentKeys<offset + 1, size, REST...>(keys);
+  }
+
+  template<size_t offset>
+  ComponentMask CreateEntityComponents(Entity& entity) const {
+    return 0;
+  }
+
+  template<size_t offset, typename CT, typename... REST>
+  ComponentMask CreateEntityComponents(Entity& entity) {
+    ComponentIndex<CT, MComponents...> componentIndex;
+    Offset componentOffset = componentData[componentIndex].size();
+    entity.componentMap[componentIndex] = componentOffset;
+    entity.componentMask ^= 1UL << componentIndex;
+    componentData[componentIndex].resize(componentOffset + sizeof(CT));
+    auto componentInstance = (CT*) new (&componentData[componentIndex][componentOffset]) CT;
+    componentInstance->entityIndex = entity.GetIndex();
+    return CreateEntityComponents<offset + 1, REST...>(entity) ^ 1UL << componentIndex;
   }
 
   template<size_t index>
-  uint16_t CreateSystemBitMask(const uint16_t mask, std::vector<std::vector<uint8_t>*>& componentsSubset) {
-    return mask;
-  }
-
-  template<size_t index, typename SystemComponentType, typename... SystemComponentTypes>
-  uint16_t CreateSystemBitMask(const uint16_t mask, std::vector<std::vector<uint8_t>*>& componentsSubset) {
-    // TODO: make some static assertions about valid components'n stuff, but seems to be WAY above my IQ
-    // TODO: Assert - EntityComponentType is in the AllEntityComponents variadic
-    // TODO: Assert - No duplicates
-    // TODO: Assert - All components are in correct increment order
-    Index<SystemComponentType, AllComponentTypes...> componentIndex;
-    // int i = (int) componentIndex;
-    // std::vector<uint8_t> J = components[i];
-    // std::vector<uint8_t>* j = &components[i];
-    // componentsSubset[index] = j;
-    componentsSubset[index] = &components[componentIndex];
-    return CreateSystemBitMask<index + 1, SystemComponentTypes...>(mask, componentsSubset) ^ (uint16_t)(1 << componentIndex);
-  }
-
-  template<size_t index>
-  std::tuple<> GetEntityComponents(const uint16_t bitmask, const int32_t next, uint16_t offset) {
+  std::tuple<> GetEntityData(const Entity& entity) const {
     return std::tuple<>();
   }
 
-  template<size_t index, typename EntityComponentType, typename... EntityComponentTypes>
-  std::tuple<EntityComponentType*, EntityComponentTypes*...> GetEntityComponents(const uint16_t bitmask, const int32_t next, uint16_t offset) {
-    while ((bitmask & (1 << offset)) == 0) offset++;
-    auto instance = (EntityComponentType*) &components[offset][next];
-    std::tuple<std::add_pointer_t<EntityComponentType>> value(instance);
-    return std::tuple_cat(value, GetEntityComponents<index + 1, EntityComponentTypes...>(bitmask, instance->next, offset + 1));
+  template<size_t index, typename CT, typename...REST>
+  std::tuple<CT*, REST*...> GetEntityData(const Entity& entity) const {
+    ComponentIndex<CT, MComponents...> componentIndex;
+    auto offset = entity.componentMap.find((Index) componentIndex);
+    auto componentInstance = (CT*) &componentData[componentIndex][offset->second];
+    return std::tuple_cat(std::tuple<CT*>(componentInstance), GetEntityData<index + 1, REST...>(entity));
   }
 
-  template<typename... EntityComponentTypes>
-  std::vector<std::shared_ptr<EntityHandle<EntityComponentTypes...>>> CreateEntities(unsigned int count) {
-    std::vector<std::shared_ptr<EntityHandle<EntityComponentTypes...>>> entitiesArray;
-    for (unsigned int i = 0; i < count; i++) {
-      entitiesArray.push_back(CreateEntity<EntityComponentTypes...>());
-    }
-    return entitiesArray;
+public:
+  Manager() {
+    SetComponentSizes<0, MComponents...>();
   }
 
-  template<typename... EntityComponentTypes>
-  std::tuple<EntityComponentTypes*...> GetEntityComponents(const std::shared_ptr<EntityHandle<EntityComponentTypes...>>& handle) {
-    const Entity* entity = &entities[handle->GetEntityIndex()];
-    return GetEntityComponents<0, EntityComponentTypes...>(entity->componentBitmask, entity->next, 0);
+  auto GetEntityCount() {
+    return entities.size();
   }
 
-  template<typename... SystemComponentTypes>
-  std::shared_ptr<System<SystemComponentTypes...>> CreateSystem() {
-    // Create a subset of the component data the system will use, meaning;
-    // if this manager holds data for components A, B, C, D; and the system is 'selecting'
-    // f.eks components B, D; we create a pointers to those component data and pass it
-    // to the system as we create it.
-    std::vector<std::vector<uint8_t>*> componentsSubset(sizeof...(SystemComponentTypes));
-    uint16_t bitmask = CreateSystemBitMask<0, SystemComponentTypes...>(0, componentsSubset);
-    // Create the system with the component bitmask representing the component selection, aswell
-    // as the data for each component.
-    auto systemInstance = new System<SystemComponentTypes...>(bitmask, componentsSubset);
-    // Create a shared pointer as the 'handle' for the system. We need to use a shared pointer
-    // because we wont always be the in control of the system, if the 'user' want to disable a system,
-    // its done by removing it from the systems array, thus we loose reference to it.
-    std::shared_ptr<System<SystemComponentTypes...>> systemPtr(systemInstance);
-    // We pass all entities to the new system to let that one filter out which entities that
-    // matches the component selection
-    for (uint32_t i = 0; i < entities.size(); i++)
-      systemInstance->EntityCreated(&entities[i]);
-    systems.push_back(systemPtr);
+  template<typename... SComponents>
+  std::shared_ptr<System<Manager<MComponents...>, SComponents...>> CreateSystem() {
+    using SystemType = System<Manager<MComponents...>, SComponents...>;
+    std::array<Index, sizeof...(SComponents)> componentKeys;
+    CreateSystemComponentKeys<0, sizeof...(SComponents), SComponents...>(componentKeys);
+    auto system = new SystemType { this, CreateSystemMask<0, SComponents...>(), componentKeys };
+    std::shared_ptr<SystemType> systemPtr(system);
+    systems.emplace_back(systemPtr);
     return systemPtr;
   }
 
-  template<size_t index>
-  void DumpComponentData() {
-    std::cout << std::endl;
+  template<typename... EComponents>
+  std::shared_ptr<EntityHandle<Manager<MComponents...>, EComponents...>> CreateEntity() {
+    Index index = entities.size();
+    auto entityHandle = new EntityHandle<Manager<MComponents...>, EComponents...>(this, index);
+    auto entityShared = std::shared_ptr<EntityHandle<Manager<MComponents...>, EComponents...>>(entityHandle);
+    entities.emplace_back(index, entityShared);
+    CreateEntityComponents<0, EComponents...>(entities[index]);
+    for (const auto& system : systems)
+      system->PushEntity(entities[index]);
+    return entityShared;
   }
 
-  template<size_t index, typename ComponentType, typename... REST>
-  void DumpComponentData() {
-    unsigned int size = sizeof(ComponentType);
-    unsigned int count = components[index].size() / size;
-    std::cout << "-- " << index << " " << ComponentType::Name << " sizeof(" << size << ") size(" << components[index].size() << ") count("<< count <<")" << std::endl;
-    for (unsigned int i = 0; i < count; i++) {
-      unsigned int offset = i * size;
-      ComponentType* instance = (ComponentType*) &components[index][offset];
-      std::cout << "[index: " << i << ", offset: "<< offset << " ] " << instance << " next: " << instance->next << std::endl;
+  template<typename Component>
+  Component* GetComponentInstance(Index index, Offset offset) const {
+    return (Component*) &componentData[index][offset];
+  }
+
+  template<typename Component>
+  Index GetComponentIndex() const {
+    return (Index) ComponentIndex<Component, MComponents...> {};
+  }
+
+  template<typename... EComponents>
+  auto GetEntityComponentData(Index entityIndex) const {
+    return GetEntityData<0, EComponents...>(entities[entityIndex]);
+  }
+
+  void RemoveEntity(Index entityIndex) {
+    for (const auto& system : systems)
+      system->PopEntity(entities[entityIndex]);
+    Index lastEntityIndex = entities.size() - 1;
+    entities[entityIndex] = entities[lastEntityIndex];
+    for (const auto& it : entities[entityIndex].componentMap) {
+      Index cIndex = it.first;
+      Index cOffset = it.second;
+      ((Component*) &componentData[cIndex][cOffset])->entityIndex = entityIndex;
     }
-    DumpComponentData<index + 1, REST...>();
-  }
-
-  void DumpComponentData() {
-    std::cout << "-- Dumping Component Data" << std::endl;
-    DumpComponentData<0, AllComponentTypes...>();
-  }
-
-  template<size_t index>
-  std::string DumpEntityBitmask(int32_t bitmask) {
-    return "";
-  }
-
-  template<size_t index, typename ComponentType, typename... REST>
-  std::string DumpEntityBitmask(int32_t bitmask) {
-    if ((bitmask) & (1 << index)) {
-      return ComponentType::Name + DumpEntityBitmask<index + 1, REST...>(bitmask);
-    } else {
-      return "-" + DumpEntityBitmask<index + 1, REST...>(bitmask);
+    for (const auto& it : entities[lastEntityIndex].componentMap) {
+      Index cIndex = it.first;
+      Index cOffset = it.second;
+      Index lOffset = componentData[cIndex].size() - componentSizes[cIndex];
+      if (cOffset != lOffset) {
+        memcpy(&componentData[cIndex][cOffset], &componentData[cIndex][lOffset], componentSizes[cIndex]);
+        Index eIndex = *(Index *) &componentData[cIndex][cOffset];
+        entities[eIndex].componentMap[cIndex] = cOffset;
+        for (const auto& system : systems)
+          system->UpdateEntity(entities[eIndex]);
+      }
+      componentData[cIndex].resize(lOffset);
     }
+    entities.pop_back();
   }
 
-  void DumpEntityData() {
-    std::cout << "-- Dumping Entity Data" << std::endl;
-    for (unsigned int i = 0; i < entities.size(); i++) {
-      std::string components = DumpEntityBitmask<0, AllComponentTypes...>(entities[i].componentBitmask);
-      std::cout << "[index: " << i << " ] " << components << " next: " << entities[i].next << std::endl;
-    }
-    std::cout << std::endl;
-  }
+
 };
 
+template<typename... SComponents>
+const unsigned int Manager<SComponents...>::SIZE(sizeof...(SComponents));
+
 #endif
+
+/*
+  template<size_t index>
+  void Dump() {}
+
+  template<size_t index, typename T, typename... TS>
+  void Dump() {
+    auto size = componentData[index].size();
+    auto count = size / componentSizes[index];
+    for (unsigned int i = 0; i < count; i++) {
+      auto offset = i * componentSizes[index];
+      auto c = (T*) &componentData[index][offset];
+      Entity* e = &entities[((Component*)c)->entityIndex];
+      std::cout << "  cindex :" << index;
+      std::cout << " cname: " << T::Name;
+      std::cout << " offset: " << offset;
+      std::cout << " index: " << i;
+      std::cout << " value: " << c->v;
+      std::cout << " caddr: " << c;
+      std::cout << " eaddr: " << e;
+      std::cout << std::endl;
+    }
+    Dump<index + 1, TS...>();
+  }
+
+  void Dump() {
+    std::cout << "Entities" << std::endl;
+    for (unsigned int i = 0; i < entities.size(); i++) {
+      Entity& e = entities[i];
+      std::cout << "  [" << i << "] " << e.GetIndex() << " " << &e << std::endl;
+    }
+    std::cout << "Components" << std::endl;
+    Dump<0, MComponents...>();
+  }
+ */

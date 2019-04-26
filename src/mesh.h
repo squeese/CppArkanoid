@@ -5,15 +5,15 @@
 #include "GL/glew.h"
 #include "shapes.h"
 
-class Mesh {
+class MeshBase {
 public:
   virtual GLuint Use() = 0;
 };
 
-enum MeshBufferTypes { NORMAL, UV, ELEMENTS };
+enum MeshTypes { NORMAL, UV, ELEMENTS };
 
-template<MeshBufferTypes... BufferTypes>
-class ArrayMesh : public Mesh {
+template<MeshTypes... BufferTypes>
+class ArrayMesh : public MeshBase {
 public:
   GLuint VAO = 0;
   GLuint VBO[sizeof...(BufferTypes) + 1] = { 0 };
@@ -35,7 +35,7 @@ public:
   template <size_t VBOIndex, size_t ATTRIBIndex>
   void BindBuffer(const std::shared_ptr<Shape>& shape) {}
 
-  template <size_t VBOIndex, size_t ATTRIBIndex, MeshBufferTypes BufferType, MeshBufferTypes... Rest>
+  template <size_t VBOIndex, size_t ATTRIBIndex, MeshTypes BufferType, MeshTypes... Rest>
   void BindBuffer(const std::shared_ptr<Shape>& shape) {
     switch (BufferType) {
       case UV: {

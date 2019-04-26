@@ -1,12 +1,8 @@
 #include "entity.h"
 
-void EntityHandleManager::PurgeHandle(unsigned long index) {
-  if (index == pointers.size() - 1) {
-    pointers.pop_back();
-    return;
+void Entity::SetIndex(int index) {
+  if (!entityHandle.expired()) {
+    SPointer ptr = entityHandle.lock();
+    ptr->SetIndex(index);
   }
-  pointers[index] = pointers.back();
-  pointers.pop_back();
-  std::shared_ptr<EntityHandleBase> ptr = pointers[index].lock();
-  ptr->SetHandleIndex(index);
 }

@@ -1,103 +1,75 @@
 #ifndef EKSAMENECS17_ENTITY_H
 #define EKSAMENECS17_ENTITY_H
 
-#include <cstdint>
-#include <functional>
-#include <memory>
-#include <vector>
+#include "types.h"
 #include <map>
+#include <memory>
 
-class Antity {
-public:
-  uint32_t index;
-  int32_t mask = 0;
-  std::map<uint32_t, uint32_t> offsets;
-  explicit Antity(uint32_t index) : index(index) {}
-};
+template<typename... MComponents>
+class Manager;
+class EntityHandleBase;
 
-/*
-template<typename... EntityComponents>
-class Antity : public AntityBase {
+class Entity {
+  using WPointer = std::weak_ptr<EntityHandleBase>;
+  using SPointer = std::shared_ptr<EntityHandleBase>;
+  using ComponentMap = std::map<Index, Offset>;
+
+  Index entityIndex;
+  WPointer entityHandle;
 public:
-  unsigned int size = sizeof...(EntityComponents);
-  uint32_t offsets[sizeof...(EntityComponents)] = { 0 };
-  Antity(uint32_t index, int32_t mask, uint32_t* offsets) : AntityBase(index, mask) {
-    memcpy(this->offsets, offsets, size);
+  ComponentMask componentMask = 0;
+  ComponentMap componentMap;
+
+  Entity(Index index, const SPointer& entityHandle) : entityIndex(index), entityHandle(entityHandle) {}
+
+  Entity& operator = (Entity& other) {
+    if (&other != this) {
+      entityHandle.swap(other.entityHandle);
+      componentMap.swap(other.componentMap);
+      ComponentMask m = componentMask;
+      componentMask = other.componentMask;
+      other.componentMask = m;
+      SetIndex(entityIndex);
+      other.SetIndex(-1);
+    }
+    return *this;
+  }
+
+  void SetIndex(int i);
+  Index GetIndex() const {
+    return entityIndex;
   }
 };
- */
-
-
-struct Entity {
-public:
-  uint16_t componentBitmask;
-  int32_t next;
-  Entity(uint16_t m, int32_t n) : componentBitmask(m), next(n) {}
-};
-
-class EntityHandleManager;
 
 class EntityHandleBase {
-public:
-  virtual ~EntityHandleBase() = default;
-  virtual void SetEntityIndex(unsigned long index) = 0;
-  virtual void SetHandleIndex(unsigned long index) = 0;
+  friend void Entity::SetIndex(int i);
+  virtual void SetIndex(int index) = 0;
 };
 
-template<typename... EntityComponentTypes>
+template<typename Manager, typename... EComponents>
 class EntityHandle : public EntityHandleBase {
-  unsigned long entityIndex;
-  unsigned long handleIndex;
-  using ArgsType = std::tuple<EntityComponentTypes*...>;
-  using FuncType = std::function<void(EntityComponentTypes*...)>;
-public:
-  EntityHandleManager* manager;
-  EntityHandle(unsigned long ei, unsigned long hi, EntityHandleManager* manager) : entityIndex(ei), handleIndex(hi), manager(manager) {}
-  ~EntityHandle() final;
-  void SetEntityIndex(unsigned long index) final;
-  void SetHandleIndex(unsigned long index) final;
-  unsigned long GetEntityIndex() const;
-  template<typename SubSetTypes>
-  void Test() {
-
+  Manager* manager;
+  int entityIndex;
+  void SetIndex(int index) final {
+    entityIndex = index;
   }
-};
 
-class EntityHandleManager {
-  std::vector<std::weak_ptr<EntityHandleBase>> pointers;
 public:
-  template<typename... EntityComponentTypes>
-  std::shared_ptr<EntityHandle<EntityComponentTypes...>> CreateHandle(unsigned long entityIndex);
-  void PurgeHandle(unsigned long index);
-};
+  EntityHandle(Manager* manager, Index index) : manager(manager), entityIndex(index) {}
 
-template<typename... EntityComponentTypes>
-std::shared_ptr<EntityHandle<EntityComponentTypes...>> EntityHandleManager::CreateHandle(unsigned long entityIndex) {
-  const auto handle = new EntityHandle<EntityComponentTypes...>(entityIndex, pointers.size(), this);
-  std::shared_ptr<EntityHandle<EntityComponentTypes...>> sharedPtr(handle);
-  std::weak_ptr<EntityHandle<EntityComponentTypes...>> weakPtr(sharedPtr);
-  pointers.push_back(weakPtr);
-  return sharedPtr;
-}
+  int GetIndex() {
+    return entityIndex;
+  }
 
-template<typename... EntityComponentTypes>
-void EntityHandle<EntityComponentTypes...>::SetEntityIndex(unsigned long index) {
-  entityIndex = index;
-};
+  void Apply(const std::function<void(Index, EComponents*...)>& fn) {
+    std::apply(fn, std::tuple_cat(
+      std::tuple<Index>(entityIndex),
+      manager->template GetEntityComponentData<EComponents...>(entityIndex)));
+  }
 
-template<typename... EntityComponentTypes>
-void EntityHandle<EntityComponentTypes...>::SetHandleIndex(unsigned long index) {
-  handleIndex = index;
-};
-
-template<typename... EntityComponentTypes>
-unsigned long EntityHandle<EntityComponentTypes...>::GetEntityIndex() const {
-  return entityIndex;
-};
-
-template<typename... EntityComponentTypes>
-EntityHandle<EntityComponentTypes...>::~EntityHandle() {
-  manager->PurgeHandle(this->handleIndex);
+  void Apply(const std::function<void(EComponents*...)>& fn) {
+    std::apply(fn, manager->template GetEntityComponentData<EComponents...>(entityIndex));
+  }
 };
 
 #endif

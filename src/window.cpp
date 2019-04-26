@@ -38,6 +38,7 @@ bool Window::HandleInput() {
           case SDL_SCANCODE_A: KEY_A = true; break;
           case SDL_SCANCODE_S: KEY_S = true; break;
           case SDL_SCANCODE_D: KEY_D = true; break;
+          case SDL_SCANCODE_SPACE: KEY_SPACE = true; break;
         }
         break;
       }
@@ -47,6 +48,7 @@ bool Window::HandleInput() {
           case SDL_SCANCODE_A: KEY_A = false; break;
           case SDL_SCANCODE_S: KEY_S = false; break;
           case SDL_SCANCODE_D: KEY_D = false; break;
+          case SDL_SCANCODE_SPACE: KEY_SPACE = true; break;
         }
         break;
       case SDL_MOUSEBUTTONDOWN:

@@ -14,6 +14,7 @@ public:
   bool KEY_A = false;
   bool KEY_S = false;
   bool KEY_D = false;
+  bool KEY_SPACE = false;
 
   using RenderFunction = std::function<void(float, float)>;
   Window(int width, int height, const std::string& title);

@@ -6,7 +6,8 @@
 #include "program.h"
 #include "mesh.h"
 
-class GenericSceneVertexShader : public Shader<GL_VERTEX_SHADER> {
+
+class LineBoxVertexShader : public Shader<GL_VERTEX_SHADER> {
 public:
   inline static const char *SOURCE = R"(
     #version 330 core
@@ -16,7 +17,6 @@ public:
     uniform mat4 mP;
     uniform mat4 mV;
     uniform mat4 mM;
-    uniform vec3 lightAmbient;
     uniform vec3 lightPosition;
     out vec3 fPosition;
     out vec2 fUv;
@@ -31,7 +31,7 @@ public:
   )";
 };
 
-class GenericSceneFragmentShader : public Shader<GL_FRAGMENT_SHADER> {
+class LineBoxFragmentShader : public Shader<GL_FRAGMENT_SHADER> {
 public:
   inline static const char *SOURCE = R"(
     #version 330 core
@@ -40,25 +40,18 @@ public:
     in vec3 fPosition;
     in vec3 fNormal;
     in vec2 fUv;
-    uniform vec3 lightAmbient;
     uniform vec3 lightPosition;
-    const float eThickness = 2.0;
-    const float eSharpness = 6.0;
-    const float eSubtract = 0.2;
-    const float eStrength = 10.0f;
+    uniform float time;
     void main() {
       vec3 lv = normalize(lightPosition - fPosition);
-      float b = clamp(dot(lv, fNormal), 0, 1);
-      FragColor = vec4(b, b, b, 1.0);
-      vec2 uv = abs(fUv - 0.5) * eThickness;
-      uv = pow(uv, vec2(eSharpness)) - eSubtract;
-      float c = clamp(uv.x + uv.y, 0.0, 1.0) * eStrength;
-      EmitColor = vec4(c, c, c, 1.0);
+      float b = (1 - clamp(dot(lv, fNormal), 0.5, 0.95));
+      FragColor = vec4(b, b, b, b);
+      EmitColor = vec4(1-b, 1-b, 1-b, b);
     }
   )";
 };
 
-class GenericSceneVertexShader2 : public Shader<GL_VERTEX_SHADER> {
+class ThickBorderVertexShader : public Shader<GL_VERTEX_SHADER> {
 public:
   inline static const char *SOURCE = R"(
     #version 330 core
@@ -83,28 +76,22 @@ public:
   )";
 };
 
-class GenericSceneFragmentShader2 : public Shader<GL_FRAGMENT_SHADER> {
+class ThickBorderFragmentShader : public Shader<GL_FRAGMENT_SHADER> {
 public:
   inline static const char *SOURCE = R"(
     #version 330 core
-    // layout (location = 0) out vec4 FragColor;
+    layout (location = 1) out vec4 FragColor;
     // layout (location = 1) out vec4 EmitColor;
-    out vec4 FragColor;
-    in vec3 fPosition;
-    in vec3 fNormal;
     in vec2 fUv;
-    uniform vec3 lightAmbient;
-    uniform vec3 lightPosition;
+    const float eThickness = 2.25;
+    const float eSharpness = 2.0;
+    const float eSubtract = 0.25;
+    const float eStrength = 40.0f;
     void main() {
-      FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-      // EmitColor = vec4(1.0, 1.0, 1.0, 1.0);
-      // vec3 lv = normalize(lightPosition - fPosition);
-      // float b = clamp(dot(lv, fNormal), 0, 1);
-      // FragColor = vec4(b, b, b, 1.0);
-      // vec2 uv = abs(fUv - 0.5) * eThickness;
-      // uv = pow(uv, vec2(eSharpness)) - eSubtract;
-      // float c = clamp(uv.x + uv.y, 0.0, 1.0) * eStrength;
-      // EmitColor = vec4(c, c, c, 1.0);
+      vec2 uv = abs(fUv - 0.5) * eThickness;
+      uv = pow(uv, vec2(eSharpness)) - eSubtract;
+      float c = clamp(uv.x + uv.y, 0.0, 1.0) * eStrength;
+      FragColor = vec4(c, c, c, 0.0255);
     }
   )";
 };
@@ -194,19 +181,17 @@ class Renderer {
   GLuint BlurCBO[2] = { 0 };
 
 public:
-  // Program<GenericSceneVertexShader, GenericSceneFragmentShader> sceneShader;
-  Program<GenericSceneVertexShader, GenericSceneFragmentShader> sceneShader;
+  Program<LineBoxVertexShader, LineBoxFragmentShader> lineShader;
+  Program<ThickBorderVertexShader, ThickBorderFragmentShader> edgeShader;
   Program<QuadVertexShader, BlurFragmentShader> blurShader;
   Program<QuadVertexShader, BloomFragmentShader> bloomShader;
   Program<QuadVertexShader, QuadFragmentShader> quadShader;
-  ArrayMesh<MeshBufferTypes::UV> quad;
+  ArrayMesh<MeshTypes::UV> quad;
 
   explicit Renderer(GLint width, GLint height) : quad(ShapeBuilder::Quad(2.0f, 2.0f, 0)) {
 
     // glEnable(GL_CULL_FACE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glGenFramebuffers(1, &MainFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, MainFBO);
@@ -261,16 +246,43 @@ public:
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   }
 
-  void FinalizeFrame() {
+  void FinalizeFrameMCBO_0() {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    quadShader.Use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, MainCBO[0]);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.Use());
+    glBindVertexArray(0);
+  }
+
+  void FinalizeFrameMCBO_1() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     quadShader.Use();
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, MainCBO[1]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.Use());
     glBindVertexArray(0);
+  }
 
+  void FinalizeFrameBCBO_0() {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    quadShader.Use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, BlurCBO[0]);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.Use());
+    glBindVertexArray(0);
+  }
 
-    /*
+  void FinalizeFrameBCBO_1() {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    quadShader.Use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, BlurCBO[1]);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.Use());
+    glBindVertexArray(0);
+  }
+
+  void FinalizeFrameBlur() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     blurShader.Use();
     glActiveTexture(GL_TEXTURE0);
@@ -281,18 +293,19 @@ public:
       glBindTexture(GL_TEXTURE_2D, (i == 0) ? MainCBO[1] : BlurCBO[1 - horizontal]);
       glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.Use());
     }
+  }
 
+  void FinalizeFrameBloom() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     bloomShader.Use();
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, MainCBO[0]);
-    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, BlurCBO[1]);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, MainCBO[0]);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, BlurCBO[1]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, quad.Use());
-
     glBindVertexArray(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-     */
   }
 
   ~Renderer() {
